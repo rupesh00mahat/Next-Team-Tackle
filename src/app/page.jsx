@@ -1,9 +1,7 @@
 'use client';
 import TaskArea from "@/components/TaskArea";
-import UserGreeting from "@/components/UserGreeting";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import io from "socket.io-client";
-import Example from "@/components/Example"
 import { DndContext } from "@dnd-kit/core";
 
 const socket = io.connect('http://localhost:3001');
@@ -35,25 +33,21 @@ export default function Home() {
 
 
   const [tasks, setTasks] = useState(INITIAL_TASKS)
+  const newTaskRef = useRef("");
 
-  const [room, setRoom] = useState("1000");
-  const [message, setMessage] = useState(tasks);
-  const[messageReceived, setMessageReceived] = useState("");
+  const addNewTask = () => {
+   setTasks((prevTasks) => { return [...prevTasks, { id: tasks.length, status: 'not-started', task: newTaskRef.current.value }] });
 
-  useEffect(()=>{
-    socket.on("receive_message", (data)=>{
+  }
+
+
+  useEffect(() => {
+    socket.on("receive_message", (data) => {
       console.log(data);
       setTasks(data);
-  })
-  },[socket])
+    })
+  }, [socket])
 
-  const joinRoom = () => {
-
-    if(room !== ""){
-      console.log("emitted"+room)
-      socket.emit("join_room", room);
-    }
-  }
 
   const handleDragEnd = (event) => {
     const { active, over } = event;
@@ -68,16 +62,16 @@ export default function Home() {
   };
 
 
-  useEffect(()=>{
-    setMessage(tasks);
-  }, [tasks])
-
-  // droppable
-
 
 
   return (
-    <div >
+    <div className="w-[90%] mx-auto">
+      <div className="input-area flex gap-10  mt-5">
+        <input ref={newTaskRef} className="border w-[60%]" type="text" name="task" id="task" />
+        <button
+          onClick={addNewTask}
+          className="bg-black text-white px-10 py-2">Add Task</button>
+      </div>
       <DndContext onDragEnd={handleDragEnd}
         accessibility={typeof window === 'undefined' ? false : undefined}
 
@@ -85,9 +79,8 @@ export default function Home() {
         <TaskArea tasks={tasks} />
       </DndContext>
 
-      <button onClick={()=>{joinRoom()}}>Join Room</button>
-      <br/>
-      <button onClick={()=>{ socket.emit('send_message', {message, room})}}>Send Message</button>
+      <br />
+      <button onClick={() => { socket.emit('send_message', { message: tasks }) }}>Send Message</button>
 
     </div>
   );
